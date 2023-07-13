@@ -30,19 +30,54 @@ document.querySelector("#loginButton").addEventListener("click", () => {
 	redirectToLogin();
 });
 
+document.querySelector("#sayHello").addEventListener("click", async () => {
+	const rawTokens = localStorage.getItem("tokens");
+	const tokens = JSON.parse(rawTokens);
+	console.log(tokens);
+	const helloResponse = await fetch("http://localhost:8000/say_hello", {
+		method: "POST",
+		headers: new Headers({"Authorization": `Bearer ${tokens.id_token}`}),
+		body: JSON.stringify({message: "hello"}),
+	});
+	if (!helloResponse.ok) {
+		alert("Failed to say hello");
+		return;
+	}else {
+		alert("Said hello");
+	}
+});
+
+document.querySelector("#waveHello").addEventListener("click", async () => {
+	const rawTokens = localStorage.getItem("tokens");
+	const tokens = JSON.parse(rawTokens);
+	console.log(tokens);
+	const helloResponse = await fetch("http://localhost:8000/wave_hello", {
+		method: "POST",
+		headers: new Headers({"Authorization": `Bearer ${tokens.id_token}`}),
+		body: JSON.stringify({message: "hello"}),
+	});
+	if (!helloResponse.ok) {
+		alert("Failed to wave hello");
+		return;
+	}else {
+		alert("Waved hello");
+	}
+});
+
 const init = async (tokens) => {
 	console.log(tokens);
 	const access_token = tokens.access_token;
-
+	let apiResp = {};
 	try {
-		const apiRes = await fetch("/api/user", {
+		const apiRes = await fetch("http://localhost:8000/api/access", {
 			headers: new Headers({"Authorization": `Bearer ${access_token}`}),
 		});
 		if (!apiRes.ok) {
 			throw new Error(apiRes);
 		}
-		const apiResp = await apiRes.json();
-		document.querySelector("#user").innerText = `You are signed in as ${apiResp.userId}`;
+		apiResp = await apiRes.json();
+		console.log(apiResp);
+		document.querySelector("#user").innerText = `You are signed in as ${apiResp.username}`;
 	}catch(e) {
 		console.error(e);
 		document.querySelector("#user").innerText = `Failed to get userid. Are you logged in with a valid token?`;
@@ -120,12 +155,14 @@ const init = async (tokens) => {
 			const userInfoRes = await fetch(`${cognitoLoginUrl}/oauth2/userInfo`, {
 				headers: new Headers({"Authorization": `Bearer ${tokens.access_token}`}),
 			});
-			const apiRes = await fetch("/api/user", {
+			const apiRes = await fetch("http://localhost:8000/api/access", {
 				headers: new Headers({"Authorization": `Bearer ${tokens.access_token}`}),
 			});
-			const apiResIdToken = await fetch("/api/user", {
+			const apiResIdToken = await fetch("http://localhost:8000/api/id", {
 				headers: new Headers({"Authorization": `Bearer ${tokens.id_token}`}),
 			});
+			const apiId = await apiResIdToken.json();
+			console.log(apiId);
 			statusCell.innerText = `userInfo: ${userInfoRes.ok}\napi access_token: ${apiRes.ok}\napi id_token: ${apiResIdToken.ok}`;
 		});
 	}
@@ -157,10 +194,30 @@ if (searchParams.get("code") !== null) {
 	if (!res.ok) {
 		throw new Error(await res.json());
 	}
+	
 	const tokens = await res.json();
 	localStorage.setItem("tokens", JSON.stringify(tokens));
-
+	
 	init(tokens);
+	const apiResIdToken = await fetch("http://localhost:8000/api/id", {
+		headers: new Headers({"Authorization": `Bearer ${tokens.id_token}`}),
+	});
+	const userPayload = await apiResIdToken.json();
+
+	// After we got the tokens, we need to sync the user info with Permit
+	const syncUser = await fetch("http://localhost:8000/api/sync", {
+		method: "POST",
+		headers: new Headers({"Authorization": `Bearer ${tokens.access_token}`}),
+		body: JSON.stringify({
+			"name": userPayload.name,
+			"key": userPayload.sub,
+			"email": userPayload.email,
+		}),
+	});
+	console.log(syncUser);
+	if (syncUser.ok) {
+		console.log("User synced");
+	}
 }else {
 	if (localStorage.getItem("tokens")) {
 		const tokens = JSON.parse(localStorage.getItem("tokens"));
