@@ -208,11 +208,6 @@ if (searchParams.get("code") !== null) {
 	const syncUser = await fetch("http://localhost:8000/api/sync", {
 		method: "POST",
 		headers: new Headers({"Authorization": `Bearer ${tokens.access_token}`}),
-		body: JSON.stringify({
-			"name": userPayload.name,
-			"key": userPayload.sub,
-			"email": userPayload.email,
-		}),
 	});
 	console.log(syncUser);
 	if (syncUser.ok) {

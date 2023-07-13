@@ -125,7 +125,6 @@ app.post("/api/sync", async (req, res) => {
     }
     );
     res.status(200).send(syncUser);
-
 }
 );
 
