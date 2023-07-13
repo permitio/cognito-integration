@@ -122,8 +122,14 @@ app.post("/api/sync", async (req, res) => {
         "first_name": payload.name,
         "key": payload.sub,
         "email": payload.email,
-    }
-    );
+    });
+    // you can also assign role to a user here if you have mapping between Cognito groups and Permit roles
+    // with the assign role SDK method
+    // await permit.api.assignRole({
+    //     "key": cognitoUser.sub,
+    //     "role": caseSensitiveRoleKey,
+    //     "tenant": caseSensitiveTenantKey, // if you don't use tenants, use 'default'
+    // });
     res.status(200).send(syncUser);
 }
 );
